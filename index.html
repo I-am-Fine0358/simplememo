@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIメモ帳</title>
+    <title>メモ帳</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -21,54 +21,51 @@
         #editor::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         .modal-backdrop { transition: opacity 0.2s ease-in-out; }
         .modal-content { transition: transform 0.2s ease-in-out; }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-200 h-screen flex items-center justify-center p-4">
 
+    <!-- メインコンテナ -->
     <div id="notepad" class="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col">
         
+        <!-- ヘッダー -->
         <header class="bg-gray-100 p-2 border-b border-gray-300 flex items-center space-x-2 rounded-t-lg">
-            <h1 id="file-title" class="text-sm font-semibold text-gray-700 mr-auto truncate pr-2">無題 - AIメモ帳</h1>
-            <button id="gemini-btn" class="px-3 py-1 text-sm bg-purple-600 text-white border border-purple-700 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center space-x-2 disabled:bg-purple-400 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                <span>AIにおまかせ</span>
+            <h1 id="file-title" class="text-sm font-semibold text-gray-700 mr-auto truncate pr-2">無題 - メモ帳</h1>
+            <button id="new-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                新規作成
             </button>
-            <button id="new-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">新規作成</button>
-            <button id="open-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500">開く</button>
-            <button id="save-as-btn" class="px-3 py-1 text-sm bg-blue-600 text-white border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">名前を付けて保存</button>
+            <button id="open-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                開く
+            </button>
+            <button id="save-btn" class="px-3 py-1 text-sm bg-blue-600 text-white border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                名前を付けて保存
+            </button>
         </header>
 
+        <!-- テキスト編集エリア -->
         <main class="flex-grow h-0 relative">
-            <textarea id="editor" class="w-full h-full p-3 text-base bg-white" placeholder="ここにテキストを入力し、「AIにおまかせ」ボタンを押してください..." spellcheck="false"></textarea>
-            <div id="loading-overlay" class="absolute inset-0 bg-white bg-opacity-75 flex-col items-center justify-center hidden">
-                <div class="loader"></div>
-                <p class="mt-3 text-gray-600">AIが文章を生成中です...</p>
-            </div>
+            <textarea 
+                id="editor" 
+                class="w-full h-full p-3 text-base bg-white"
+                placeholder="ここにテキストを入力してください..."
+                spellcheck="false"
+            ></textarea>
+            <input type="file" id="file-opener" class="hidden" accept=".txt,text/plain">
         </main>
 
+        <!-- フッター -->
         <footer class="bg-gray-100 p-1 border-t border-gray-300 text-xs text-gray-600 text-right rounded-b-lg">
             <span id="char-count">0</span> 文字
         </footer>
+
     </div>
 
-    <!-- 各種モーダル -->
+    <!-- 変更確認モーダル -->
     <div id="confirmation-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
         <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">変更を保存しますか？</h3>
-            <p class="text-sm text-gray-600 mb-6">「新規作成」をクリックする前に、現在の内容を保存しますか？</p>
+            <h3 id="confirm-title" class="text-lg font-semibold text-gray-800 mb-4">変更を保存しますか？</h3>
+            <p id="confirm-message" class="text-sm text-gray-600 mb-6">現在の内容を破棄する前に保存しますか？</p>
             <div class="flex justify-end space-x-3">
                 <button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none">キャンセル</button>
                 <button id="modal-discard-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 focus:outline-none">保存しない</button>
@@ -76,319 +73,239 @@
             </div>
         </div>
     </div>
-    
-    <div id="notification-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
-            <h3 id="notification-title" class="text-lg font-semibold text-red-600 mb-4">エラー</h3>
-            <p id="notification-message" class="text-sm text-gray-600 mb-6">メッセージ</p>
-            <div class="flex justify-end">
-                <button id="notification-close-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none">閉じる</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="save-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">名前を付けて保存</h3>
-            <p class="text-sm text-gray-600 mb-4">ファイル名を入力してください。</p>
-            <input type="text" id="filename-input" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: my-memo.txt">
-            <div class="flex justify-end space-x-3 mt-6">
-                <button id="save-modal-cancel-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none">キャンセル</button>
-                <button id="save-modal-save-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none">保存</button>
-            </div>
-        </div>
-    </div>
-
-    <input type="file" id="file-opener" class="hidden" accept=".txt,text/plain">
 
     <script>
-        const GEMINI_API_KEY = ""; // ここにあなたのAPIキーを入力してください
-
         // DOM要素
         const editor = document.getElementById('editor');
+        const saveBtn = document.getElementById('save-btn');
         const newBtn = document.getElementById('new-btn');
         const openBtn = document.getElementById('open-btn');
-        const saveAsBtn = document.getElementById('save-as-btn');
-        const geminiBtn = document.getElementById('gemini-btn');
+        const fileOpener = document.getElementById('file-opener');
         const charCount = document.getElementById('char-count');
         const fileTitle = document.getElementById('file-title');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const fileOpener = document.getElementById('file-opener');
 
-        // モーダル要素
-        const confirmModal = {
-            el: document.getElementById('confirmation-modal'),
-            saveBtn: document.getElementById('modal-save-btn'),
-            discardBtn: document.getElementById('modal-discard-btn'),
-            cancelBtn: document.getElementById('modal-cancel-btn'),
-        };
-
-        const notifyModal = {
-            el: document.getElementById('notification-modal'),
-            title: document.getElementById('notification-title'),
-            message: document.getElementById('notification-message'),
-            closeBtn: document.getElementById('notification-close-btn'),
-        };
-
-        const saveModal = {
-            el: document.getElementById('save-modal'),
-            input: document.getElementById('filename-input'),
-            saveBtn: document.getElementById('save-modal-save-btn'),
-            cancelBtn: document.getElementById('save-modal-cancel-btn'),
-        };
+        // 確認モーダル
+        const confirmModal = document.getElementById('confirmation-modal');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const modalDiscardBtn = document.getElementById('modal-discard-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
         let isContentDirty = false;
         let currentFileName = '無題.txt';
-        let actionAfterSave = null;
+        let fileHandle = null; // File System Access APIのファイルハンドル
+        let actionAfterConfirm = null; // 確認モーダル後のアクション
 
-        // --- 初期化 ---
-        function init() {
-            setupEventListeners();
-            updateCharCount();
-            checkApiKey();
-        }
-
-        function checkApiKey() {
-            if (!GEMINI_API_KEY) {
-                showNotification('APIキーがありません', 'Gemini APIキーが設定されていません。「AIにおまかせ」機能は使用できません。', 'info');
-                geminiBtn.disabled = true;
-            }
-        }
-
-        // --- イベントリスナー設定 ---
-        function setupEventListeners() {
-            editor.addEventListener('input', handleEditorInput);
-            newBtn.addEventListener('click', handleNewFile);
-            openBtn.addEventListener('click', handleOpenFile);
-            fileOpener.addEventListener('change', readFileContent);
-            saveAsBtn.addEventListener('click', () => showSaveModal());
-            geminiBtn.addEventListener('click', callGeminiApi);
-
-            // 確認モーダル
-            confirmModal.saveBtn.addEventListener('click', () => {
-                hideModal(confirmModal.el);
-                showSaveModal();
-            });
-            confirmModal.discardBtn.addEventListener('click', () => {
-                hideModal(confirmModal.el);
-                if (actionAfterSave) {
-                    actionAfterSave();
-                    actionAfterSave = null;
-                }
-            });
-            confirmModal.cancelBtn.addEventListener('click', () => hideModal(confirmModal.el));
-
-            // 保存モーダル
-            saveModal.saveBtn.addEventListener('click', handleSaveFile);
-            saveModal.cancelBtn.addEventListener('click', () => hideModal(saveModal.el));
-            saveModal.input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') handleSaveFile();
-            });
-
-            // 通知モーダル
-            notifyModal.closeBtn.addEventListener('click', () => hideModal(notifyModal.el));
-            
-            // モーダル背景クリック
-            [confirmModal.el, notifyModal.el, saveModal.el].forEach(modalEl => {
-                modalEl.querySelector('.modal-backdrop').addEventListener('click', () => hideModal(modalEl));
-            });
-        }
-
-        // --- イベントハンドラ ---
-        function handleEditorInput() {
+        // --- イベントリスナー ---
+        editor.addEventListener('input', () => {
             updateCharCount();
             if (!isContentDirty) {
-                fileTitle.textContent = `*${currentFileName.replace(/\.txt$/, '')} - AIメモ帳`;
+                fileTitle.textContent = `*${currentFileName.split('.')[0]} - メモ帳`;
             }
             isContentDirty = true;
-        }
+        });
 
+        newBtn.addEventListener('click', handleNewFile);
+        openBtn.addEventListener('click', handleOpenFile);
+        saveBtn.addEventListener('click', () => saveFile());
+        fileOpener.addEventListener('change', openFileFallback);
+
+        // 変更確認モーダルのボタン
+        modalSaveBtn.addEventListener('click', async () => {
+            hideConfirmModal();
+            const saved = await saveFile();
+            if (saved && typeof actionAfterConfirm === 'function') {
+                actionAfterConfirm();
+            }
+            actionAfterConfirm = null;
+        });
+        modalDiscardBtn.addEventListener('click', () => {
+            hideConfirmModal();
+            if (typeof actionAfterConfirm === 'function') {
+                actionAfterConfirm();
+            }
+            actionAfterConfirm = null;
+        });
+        modalCancelBtn.addEventListener('click', () => {
+            hideConfirmModal();
+            actionAfterConfirm = null;
+        });
+        confirmModal.querySelector('.modal-backdrop').addEventListener('click', () => {
+            hideConfirmModal();
+            actionAfterConfirm = null;
+        });
+        
+        // --- ファイル操作ハンドラ ---
         function handleNewFile() {
-            if (!isContentDirty || editor.value.trim() === '') {
-                clearEditor();
+            if (isContentDirty) {
+                showConfirmModal(clearEditor);
             } else {
-                actionAfterSave = clearEditor;
-                showModal(confirmModal.el);
+                clearEditor();
             }
         }
 
         function handleOpenFile() {
-            if (isContentDirty && editor.value.trim() !== '') {
-                actionAfterSave = () => fileOpener.click();
-                showModal(confirmModal.el);
+            if (isContentDirty) {
+                showConfirmModal(openFile);
             } else {
-                fileOpener.click();
+                openFile();
             }
         }
 
-        function handleSaveFile() {
-            const fileName = saveModal.input.value.trim();
-            if (fileName) {
-                if (!fileName.toLowerCase().endsWith('.txt')) {
-                    showNotification('ファイル名エラー', 'ファイル名には「.txt」拡張子を付けてください。');
-                    return;
-                }
+        /**
+         * ファイルを開く。File System Access APIが利用可能ならそれを使う。
+         */
+        async function openFile() {
+            if ('showOpenFilePicker' in window) {
                 try {
-                    downloadFile(fileName, editor.value);
-                    hideModal(saveModal.el);
-
-                    isContentDirty = false;
-                    currentFileName = fileName;
-                    fileTitle.textContent = `${fileName.replace(/\.txt$/, '')} - AIメモ帳`;
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'テキストファイル',
+                            accept: { 'text/plain': ['.txt'] },
+                        }],
+                        multiple: false,
+                    });
+                    const file = await handle.getFile();
+                    const content = await file.text();
                     
-                    if (actionAfterSave) {
-                        setTimeout(() => {
-                            actionAfterSave();
-                            actionAfterSave = null;
-                        }, 100);
+                    updateEditorWithNewFile(handle.name, content, handle);
+
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('ファイルを開けませんでした。', err);
+                        alert('ファイルを開けませんでした。');
                     }
-                } catch (error) {
-                    console.error("ファイル保存エラー:", error);
-                    showNotification('ファイル保存エラー', `ファイルの保存中にエラーが発生しました: ${error.message}`);
                 }
             } else {
-                showNotification('ファイル名エラー', 'ファイル名を入力してください。');
+                // APIが使えないブラウザ向けのフォールバック
+                console.warn('File System Access API is not supported. Falling back to input method.');
+                fileOpener.click(); // 隠れたinput要素をクリックさせる
             }
         }
 
-        // --- ファイル操作 ---
-        function readFileContent(event) {
+        /**
+         * 従来のファイル選択inputを使ったフォールバック用のファイルオープン処理
+         * @param {Event} event 
+         */
+        function openFileFallback(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                editor.value = e.target.result;
-                updateCharCount();
-                isContentDirty = false;
-                currentFileName = file.name;
-                fileTitle.textContent = `${file.name.replace(/\.txt$/, '')} - AIメモ帳`;
+                const content = e.target.result;
+                updateEditorWithNewFile(file.name, content, null);
             };
             reader.onerror = (e) => {
-                console.error("ファイル読み込みエラー:", e);
-                showNotification('ファイル読み込みエラー', 'ファイルの読み込み中にエラーが発生しました。');
+                console.error('ファイルの読み込みに失敗しました。', e);
+                alert('ファイルの読み込みに失敗しました。');
             };
             reader.readAsText(file);
-            // 同じファイルを選択できるようにリセット
+            
+            // 同じファイルを連続で開けるように値をリセット
             event.target.value = '';
         }
 
-        function downloadFile(filename, content) {
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
+        /**
+         * ファイルを保存する。
+         * @returns {Promise<boolean>} 保存が成功したかどうか
+         */
+        async function saveFile() {
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: currentFileName,
+                        types: [{
+                            description: 'テキストファイル',
+                            accept: { 'text/plain': ['.txt'] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(editor.value);
+                    await writable.close();
+                    
+                    updateEditorAfterSave(handle.name, handle);
+                    return true;
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('ファイルの保存に失敗しました。', err);
+                        alert('ファイルの保存に失敗しました。');
+                    }
+                    return false;
+                }
+            } else {
+                return saveFileFallback();
+            }
         }
 
+        /**
+         * 従来のダウンロード方式を使った保存処理
+         * @returns {boolean} 保存が成功したかどうか
+         */
+        function saveFileFallback() {
+             const fileName = prompt("ファイル名を入力してください（拡張子を含む）:", currentFileName);
+             if (fileName && fileName.trim() !== '') {
+                try {
+                    const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+
+                    updateEditorAfterSave(fileName, null);
+                    return true;
+                } catch (error) {
+                    console.error("ファイル保存エラー:", error);
+                    alert('ファイルの保存中にエラーが発生しました。');
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // --- UI更新/状態管理 ---
         function clearEditor() {
             editor.value = '';
             updateCharCount();
             isContentDirty = false;
             currentFileName = '無題.txt';
-            fileTitle.textContent = '無題 - AIメモ帳';
+            fileTitle.textContent = '無題 - メモ帳';
+            fileHandle = null;
+        }
+        
+        function updateEditorWithNewFile(name, content, handle) {
+            editor.value = content;
+            fileHandle = handle;
+            currentFileName = name;
+            fileTitle.textContent = `${name.split('.')[0]} - メモ帳`;
+            isContentDirty = false;
+            updateCharCount();
+        }
+
+        function updateEditorAfterSave(name, handle) {
+            fileHandle = handle;
+            currentFileName = name;
+            fileTitle.textContent = `${name.split('.')[0]} - メモ帳`;
+            isContentDirty = false;
         }
 
         function updateCharCount() {
             charCount.textContent = editor.value.length;
         }
 
-        // --- Gemini API ---
-        async function callGeminiApi() {
-            if (!GEMINI_API_KEY) {
-                checkApiKey();
-                return;
-            }
-            const prompt = editor.value;
-            if (prompt.trim() === '') {
-                showNotification('プロンプトがありません', 'エディタに何かテキストを入力してください。', 'info');
-                return;
-            }
-
-            setLoading(true);
-
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error ? errorData.error.message : 'APIからの応答が不正です。');
-                }
-
-                const result = await response.json();
-                const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (generatedText) {
-                    editor.value += '\n\n' + generatedText;
-                    handleEditorInput();
-                } else {
-                    throw new Error('AIからの有効な応答がありませんでした。');
-                }
-            } catch (error) {
-                console.error("Gemini APIエラー:", error);
-                showNotification('AIの呼び出しエラー', `エラーが発生しました: ${error.message}`);
-            } finally {
-                setLoading(false);
-            }
-        }
-        
-        function setLoading(isLoading) {
-            loadingOverlay.classList.toggle('hidden', !isLoading);
-            loadingOverlay.classList.toggle('flex', isLoading);
-            geminiBtn.disabled = isLoading;
-        }
-
         // --- モーダル制御 ---
-        function showModal(modalEl) {
-            modalEl.classList.remove('hidden');
-            modalEl.classList.add('flex');
-            setTimeout(() => {
-                modalEl.querySelector('.modal-backdrop').style.opacity = '1';
-                modalEl.querySelector('.modal-content').style.transform = 'scale(1)';
-                if (modalEl === saveModal.el) {
-                    saveModal.input.value = currentFileName;
-                    saveModal.input.focus();
-                    saveModal.input.select();
-                }
-            }, 10);
+        function showConfirmModal(action) {
+            actionAfterConfirm = action;
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
         }
 
-        function hideModal(modalEl) {
-            const backdrop = modalEl.querySelector('.modal-backdrop');
-            const content = modalEl.querySelector('.modal-content');
-            if (backdrop) backdrop.style.opacity = '0';
-            if (content) content.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                modalEl.classList.add('hidden');
-                modalEl.classList.remove('flex');
-            }, 200);
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
         }
-        
-        function showSaveModal() {
-            showModal(saveModal.el);
-        }
-
-        function showNotification(title, message, type = 'error') {
-            notifyModal.title.textContent = title;
-            notifyModal.message.textContent = message;
-            notifyModal.title.className = `text-lg font-semibold mb-4 ${type === 'error' ? 'text-red-600' : 'text-blue-600'}`;
-            showModal(notifyModal.el);
-        }
-
-        // --- アプリケーション開始 ---
-        init();
     </script>
 </body>
 </html>
