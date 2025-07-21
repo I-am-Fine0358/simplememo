@@ -5,40 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>メモ帳</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', 'Noto Sans JP', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
         #editor {
-            font-family: 'monospace';
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
             resize: none;
             border: none;
             outline: none;
             box-shadow: none;
+            background-color: #ffffff;
+            color: #1f2937;
         }
         #editor::-webkit-scrollbar { width: 12px; }
-        #editor::-webkit-scrollbar-track { background: #f1f1f1; }
-        #editor::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 6px; }
-        #editor::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        #editor::-webkit-scrollbar-track { background: #f8fafc; }
+        #editor::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 6px; border: 3px solid #f8fafc; }
+        #editor::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         .modal-backdrop { transition: opacity 0.2s ease-in-out; }
-        .modal-content { transition: transform 0.2s ease-in-out; }
+        .modal-content { transition: all 0.2s ease-in-out; }
+        .btn {
+            transition: all 0.15s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
-<body class="bg-gray-200 h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 h-screen flex items-center justify-center p-4">
 
     <!-- メインコンテナ -->
-    <div id="notepad" class="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col">
+    <div id="notepad" class="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-xl shadow-2xl flex flex-col border border-slate-200">
         
         <!-- ヘッダー -->
-        <header class="bg-gray-100 p-2 border-b border-gray-300 flex items-center space-x-2 rounded-t-lg">
-            <h1 id="file-title" class="text-sm font-semibold text-gray-700 mr-auto truncate pr-2">無題 - メモ帳</h1>
-            <button id="new-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                新規作成
+        <header class="bg-slate-50 p-3 border-b border-slate-200 flex items-center space-x-2 rounded-t-xl">
+            <h1 id="file-title" class="text-base font-semibold text-slate-700 mr-auto truncate pr-2">無題 - メモ帳</h1>
+            <button id="new-btn" class="btn flex items-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span>新規作成</span>
             </button>
-            <button id="open-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                開く
+            <button id="open-btn" class="btn flex items-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>
+                <span>開く</span>
             </button>
-            <button id="save-btn" class="px-3 py-1 text-sm bg-blue-600 text-white border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                名前を付けて保存
+            <button id="save-btn" class="btn flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                <span>名前を付けて保存</span>
             </button>
         </header>
 
@@ -46,30 +64,30 @@
         <main class="flex-grow h-0 relative">
             <textarea 
                 id="editor" 
-                class="w-full h-full p-3 text-base bg-white"
+                class="w-full h-full p-4 text-base"
                 placeholder="ここにテキストを入力してください..."
                 spellcheck="false"
             ></textarea>
-            <input type="file" id="file-opener" class="hidden" accept=".txt,text/plain">
+            <input type="file" id="file-opener" class="hidden">
         </main>
 
         <!-- フッター -->
-        <footer class="bg-gray-100 p-1 border-t border-gray-300 text-xs text-gray-600 text-right rounded-b-lg">
+        <footer class="bg-slate-50 p-2 border-t border-slate-200 text-sm text-slate-500 text-right rounded-b-xl">
             <span id="char-count">0</span> 文字
         </footer>
 
     </div>
 
     <!-- 変更確認モーダル -->
-    <div id="confirmation-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
-            <h3 id="confirm-title" class="text-lg font-semibold text-gray-800 mb-4">変更を保存しますか？</h3>
-            <p id="confirm-message" class="text-sm text-gray-600 mb-6">現在の内容を破棄する前に保存しますか？</p>
+    <div id="confirmation-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="modal-backdrop absolute inset-0 bg-black/60"></div>
+        <div class="modal-content bg-white rounded-xl shadow-xl w-full max-w-md m-4 p-6 z-10 transform scale-95">
+            <h3 id="confirm-title" class="text-lg font-semibold text-slate-800 mb-2">変更を保存しますか？</h3>
+            <p id="confirm-message" class="text-sm text-slate-600 mb-6">現在の内容を破棄する前に保存しますか？</p>
             <div class="flex justify-end space-x-3">
-                <button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none">キャンセル</button>
-                <button id="modal-discard-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 focus:outline-none">保存しない</button>
-                <button id="modal-save-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none">保存する</button>
+                <button id="modal-cancel-btn" class="btn px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 focus:outline-none">キャンセル</button>
+                <button id="modal-discard-btn" class="btn px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none">保存しない</button>
+                <button id="modal-save-btn" class="btn px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none">保存する</button>
             </div>
         </div>
     </div>
@@ -157,11 +175,8 @@
         async function openFile() {
             if ('showOpenFilePicker' in window) {
                 try {
+                    // ファイルタイプの指定をなくし、すべてのファイルを選択可能にする
                     const [handle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'テキストファイル',
-                            accept: { 'text/plain': ['.txt'] },
-                        }],
                         multiple: false,
                     });
                     const file = await handle.getFile();
@@ -212,12 +227,9 @@
         async function saveFile() {
             if ('showSaveFilePicker' in window) {
                 try {
+                    // ファイルタイプの指定をなくし、任意の拡張子で保存しやすくする
                     const handle = await window.showSaveFilePicker({
                         suggestedName: currentFileName,
-                        types: [{
-                            description: 'テキストファイル',
-                            accept: { 'text/plain': ['.txt'] },
-                        }],
                     });
                     const writable = await handle.createWritable();
                     await writable.write(editor.value);
@@ -300,11 +312,26 @@
             actionAfterConfirm = action;
             confirmModal.classList.remove('hidden');
             confirmModal.classList.add('flex');
+            // For smooth animation
+            setTimeout(() => {
+                const backdrop = confirmModal.querySelector('.modal-backdrop');
+                const content = confirmModal.querySelector('.modal-content');
+                backdrop.style.opacity = '1';
+                content.style.transform = 'scale(1)';
+                content.style.opacity = '1';
+            }, 10);
         }
 
         function hideConfirmModal() {
-            confirmModal.classList.add('hidden');
-            confirmModal.classList.remove('flex');
+            const backdrop = confirmModal.querySelector('.modal-backdrop');
+            const content = confirmModal.querySelector('.modal-content');
+            backdrop.style.opacity = '0';
+            content.style.transform = 'scale(0.95)';
+            content.style.opacity = '0';
+            setTimeout(() => {
+                confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
+            }, 200);
         }
     </script>
 </body>
