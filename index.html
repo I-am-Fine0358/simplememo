@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIメモ帳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght @400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #editor {
+            font-family: 'monospace';
+            resize: none;
+            border: none;
+            outline: none;
+            box-shadow: none;
+        }
+        #editor::-webkit-scrollbar { width: 12px; }
+        #editor::-webkit-scrollbar-track { background: #f1f1f1; }
+        #editor::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 6px; }
+        #editor::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        .modal-backdrop { transition: opacity 0.2s ease-in-out; }
+        .modal-content { transition: transform 0.2s ease-in-out; }
+        /* ローディングスピナー */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-200 h-screen flex items-center justify-center p-4">
+
+    <!-- メインコンテナ -->
+    <div id="notepad" class="w-full max-w-4xl h-full max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col">
+        
+        <!-- ヘッダー -->
+        <header class="bg-gray-100 p-2 border-b border-gray-300 flex items-center space-x-2 rounded-t-lg">
+            <h1 id="file-title" class="text-sm font-semibold text-gray-700 mr-auto truncate pr-2">無題 - AIメモ帳</h1>
+            <button id="gemini-btn" class="px-3 py-1 text-sm bg-purple-600 text-white border border-purple-700 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center space-x-2 disabled:bg-purple-400 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                <span>AIにおまかせ</span>
+            </button>
+            <button id="new-btn" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                新規作成
+            </button>
+            <button id="save-btn" class="px-3 py-1 text-sm bg-blue-600 text-white border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                名前を付けて保存
+            </button>
+        </header>
+
+        <!-- テキスト編集エリア -->
+        <main class="flex-grow h-0 relative">
+            <textarea 
+                id="editor" 
+                class="w-full h-full p-3 text-base bg-white"
+                placeholder="ここにテキストを入力し、「AIにおまかせ」ボタンを押してください..."
+                spellcheck="false"
+            ></textarea>
+            <!-- ローディングオーバーレイ -->
+            <div id="loading-overlay" class="absolute inset-0 bg-white bg-opacity-75 flex-col items-center justify-center hidden">
+                <div class="loader"></div>
+                <p class="mt-3 text-gray-600">AIが文章を生成中です...</p>
+            </div>
+        </main>
+
+        <!-- フッター -->
+        <footer class="bg-gray-100 p-1 border-t border-gray-300 text-xs text-gray-600 text-right rounded-b-lg">
+            <span id="char-count">0</span> 文字
+        </footer>
+
+    </div>
+
+    <!-- 確認モーダル -->
+    <div id="confirmation-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">変更を保存しますか？</h3>
+            <p class="text-sm text-gray-600 mb-6">「新規作成」をクリックする前に、現在の内容を保存しますか？</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none">キャンセル</button>
+                <button id="modal-discard-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 focus:outline-none">保存しない</button>
+                <button id="modal-save-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-700 rounded-md hover:bg-blue-700 focus:outline-none">保存する</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知モーダル -->
+    <div id="notification-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 z-10 transform scale-95">
+            <h3 id="notification-title" class="text-lg font-semibold text-red-600 mb-4">エラー</h3>
+            <p id="notification-message" class="text-sm text-gray-600 mb-6">メッセージ</p>
+            <div class="flex justify-end">
+                <button id="notification-close-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM要素
+        const editor = document.getElementById('editor');
+        const saveBtn = document.getElementById('save-btn');
+        const newBtn = document.getElementById('new-btn');
+        const geminiBtn = document.getElementById('gemini-btn');
+        const charCount = document.getElementById('char-count');
+        const fileTitle = document.getElementById('file-title');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // 確認モーダル
+        const confirmModal = document.getElementById('confirmation-modal');
+        const confirmModalBackdrop = confirmModal.querySelector('.modal-backdrop');
+        const confirmModalContent = confirmModal.querySelector('.modal-content');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const modalDiscardBtn = document.getElementById('modal-discard-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        // 通知モーダル
+        const notifyModal = document.getElementById('notification-modal');
+        const notifyModalBackdrop = notifyModal.querySelector('.modal-backdrop');
+        const notifyModalContent = notifyModal.querySelector('.modal-content');
+        const notifyTitle = document.getElementById('notification-title');
+        const notifyMessage = document.getElementById('notification-message');
+        const notifyCloseBtn = document.getElementById('notification-close-btn');
+
+        let isContentDirty = false;
+        let currentFileName = '無題.txt';
+
+        // --- イベントリスナー ---
+        editor.addEventListener('input', () => {
+            updateCharCount();
+            if (!isContentDirty) {
+                fileTitle.textContent = `*${currentFileName.replace('.txt', '')} - AIメモ帳`;
+            }
+            isContentDirty = true;
+        });
+
+        saveBtn.addEventListener('click', saveFile);
+        newBtn.addEventListener('click', handleNewFile);
+        geminiBtn.addEventListener('click', callGeminiApi);
+
+        modalSaveBtn.addEventListener('click', () => {
+            hideConfirmModal();
+            setTimeout(() => {
+                if(saveFile()) { clearEditor(); }
+            }, 50);
+        });
+        modalDiscardBtn.addEventListener('click', () => {
+            clearEditor();
+            hideConfirmModal();
+        });
+        modalCancelBtn.addEventListener('click', hideConfirmModal);
+        confirmModalBackdrop.addEventListener('click', hideConfirmModal);
+        
+        notifyCloseBtn.addEventListener('click', hideNotifyModal);
+        notifyModalBackdrop.addEventListener('click', hideNotifyModal);
+
+        // --- Gemini API ---
+        /**
+         * Gemini APIを呼び出してテキストを生成する非同期関数
+         */
+        async function callGeminiApi() {
+            const prompt = editor.value;
+            if (prompt.trim() === '') {
+                showNotification('プロンプトがありません', 'エディタに何かテキストを入力してください。', 'info');
+                return;
+            }
+
+            // ローディング表示を開始
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            geminiBtn.disabled = true;
+
+            try {
+                // Gemini APIのエンドポイントと設定
+                const apiKey = ""; // APIキーは環境によって提供されます
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: prompt }]
+                    }]
+                };
+
+                // APIにリクエストを送信
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error ? errorData.error.message : 'APIからの応答が不正です。');
+                }
+
+                const result = await response.json();
+
+                // 生成されたテキストを取得してエディタに追記
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const generatedText = result.candidates[0].content.parts[0].text;
+                    editor.value += '
+
+' + generatedText;
+                    updateCharCount();
+                    isContentDirty = true;
+                } else {
+                    throw new Error('AIからの有効な応答がありませんでした。');
+                }
+
+            } catch (error) {
+                console.error("Gemini APIエラー:", error);
+                showNotification('AIの呼び出しエラー', `エラーが発生しました: ${error.message}`);
+            } finally {
+                // ローディング表示を終了
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+                geminiBtn.disabled = false;
+            }
+        }
+
+        // --- ファイル操作 ---
+        function handleNewFile() {
+            if (!isContentDirty || editor.value.trim() === '') {
+                clearEditor();
+            } else {
+                showConfirmModal();
+            }
+        }
+
+        function saveFile() {
+            const fileName = prompt("ファイル名を入力してください（拡張子を含む）:", currentFileName);
+            if (fileName) {
+                try {
+                    const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+
+                    isContentDirty = false;
+                    currentFileName = fileName;
+                    fileTitle.textContent = `${fileName.replace('.txt', '')} - AIメモ帳`;
+                    return true;
+                } catch (error) {
+                    console.error("ファイル保存エラー:", error);
+                    showNotification('ファイル保存エラー', `ファイルの保存中にエラーが発生しました: ${error.message}`);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        function clearEditor() {
+            editor.value = '';
+            updateCharCount();
+            isContentDirty = false;
+            currentFileName = '無題.txt';
+            fileTitle.textContent = '無題 - AIメモ帳';
+        }
+
+        function updateCharCount() {
+            charCount.textContent = editor.value.length;
+        }
+
+        // --- モーダル制御 ---
+        function showConfirmModal() {
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+            setTimeout(() => {
+                confirmModalBackdrop.style.opacity = '1';
+                confirmModalContent.style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function hideConfirmModal() {
+            confirmModalBackdrop.style.opacity = '0';
+            confirmModalContent.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
+            }, 200);
+        }
+        
+        function showNotification(title, message, type = 'error') {
+            notifyTitle.textContent = title;
+            notifyMessage.textContent = message;
+            notifyTitle.className = `text-lg font-semibold mb-4 ${type === 'error' ? 'text-red-600' : 'text-blue-600'}`;
+            
+            notifyModal.classList.remove('hidden');
+            notifyModal.classList.add('flex');
+            setTimeout(() => {
+                notifyModalBackdrop.style.opacity = '1';
+                notifyModalContent.style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function hideNotifyModal() {
+            notifyModalBackdrop.style.opacity = '0';
+            notifyModalContent.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                notifyModal.classList.add('hidden');
+                notifyModal.classList.remove('flex');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
